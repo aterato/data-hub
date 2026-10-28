@@ -30,3 +30,14 @@ time { display: block; font-size: clamp(18px, 4vw, 28px); font-weight: 600; line
 #timezone { margin: 8px 0 0; color: #5c7066; font-size: 12px; overflow-wrap: anywhere; }
 .footer { margin: 32px 0 0; color: #5c7066; font-size: 12px; }
 .footer span { margin-right: 6px; color: #438963; }
+
+.landscape {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  object-position: center;
+  margin-top: 24px;
+  border-radius: 18px;
+}
