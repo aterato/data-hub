@@ -31,6 +31,16 @@ time { display: block; font-size: clamp(18px, 4vw, 28px); font-weight: 600; line
 .footer { margin: 32px 0 0; color: #5c7066; font-size: 12px; }
 .footer span { margin-right: 6px; color: #438963; }
 
+.weather { margin-top: 16px; padding: 24px; border-radius: 18px; background: #edf5ef; }
+.weather h2 { margin: 0; color: #537765; font-size: 12px; font-weight: 500; }
+#weather-result { margin: 12px 0 16px; line-height: 1.7; }
+#weather-button { padding: 12px 18px; border: 0; border-radius: 10px; background: #315f48; color: white; font: inherit; cursor: pointer; }
+#weather-button:hover { background: #254a37; }
+#weather-button:focus-visible { outline: 3px solid #537765; outline-offset: 4px; }
+#weather-button:disabled { opacity: .65; cursor: wait; }
+.weather-note, .weather-credit { color: #5c7066; font-size: 12px; line-height: 1.7; }
+.weather-note { margin: 16px 0 8px; }
+
 .landscape {
   display: block;
   width: 100%;

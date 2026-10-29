@@ -19,6 +19,13 @@
         <p id="timezone"></p>
         <noscript>日時を表示するには JavaScript を有効にしてください。</noscript>
       </section>
+      <section class="weather" aria-labelledby="weather-label">
+        <h2 id="weather-label">現在地の天気</h2>
+        <p id="weather-result" role="status">ボタンを押すと、現在地の天気と気温を表示します。</p>
+        <button id="weather-button" type="button">現在地の天気を表示</button>
+        <p class="weather-note">位置情報の利用許可が必要です。天気の取得時に、おおよその緯度・経度を Open-Meteo に送信します。</p>
+        <a class="weather-credit" href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Weather data by Open-Meteo</a>
+      </section>
       <img class="landscape" src="photos/vineyard.jpg" alt="霧がかかった山並みと街を見渡す、緑豊かなぶどう畑" width="1280" height="1280">
       <p class="footer"><span aria-hidden="true">●</span> 少しずつ、試してみよう。</p>
     </main>
