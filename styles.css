@@ -40,6 +40,8 @@ time { display: block; font-size: clamp(18px, 4vw, 28px); font-weight: 600; line
 #weather-button:disabled { opacity: .65; cursor: wait; }
 .weather-note, .weather-credit { color: #5c7066; font-size: 12px; line-height: 1.7; }
 .weather-note { margin: 16px 0 8px; }
+#weather-location { margin: 12px 0 0; font-size: 14px; line-height: 1.7; }
+.weather-credit { display: inline-block; margin-right: 12px; }
 
 .landscape {
   display: block;

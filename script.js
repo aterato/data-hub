@@ -26,6 +26,26 @@ setInterval(updateClock, 1000);
 
 const weatherButton = document.getElementById("weather-button");
 const weatherResult = document.getElementById("weather-result");
+const weatherLocation = document.getElementById("weather-location");
+
+let municipalityData;
+
+async function getCity(coords) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  try {
+    if (!municipalityData) {
+      const response = await fetch("data/municipalities.json", {signal: controller.signal});
+      if (!response.ok) return null;
+      municipalityData = await response.json();
+    }
+    return findMunicipality(municipalityData, coords.longitude, coords.latitude);
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 function describeWeather(code) {
   const descriptions = {
@@ -49,12 +69,19 @@ weatherButton.addEventListener("click", async () => {
   }
 
   weatherButton.disabled = true;
+  weatherLocation.textContent = "現在地：確認中…";
   weatherResult.textContent = "現在地を確認しています…";
+  let cityPromise;
   try {
     const position = await new Promise((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(resolve, reject, {
         enableHighAccuracy: false, timeout: 15000, maximumAge: 300000,
       });
+    });
+    cityPromise = getCity(position.coords);
+    weatherLocation.textContent = "現在地：市区町村名を取得しています…";
+    cityPromise.then(city => {
+      weatherLocation.textContent = city ? `現在地：${city}` : "現在地：市区町村を判定できませんでした（国内の陸地のみ対応）";
     });
     weatherResult.textContent = "天気を取得しています…";
     const params = new URLSearchParams({
@@ -83,6 +110,7 @@ weatherButton.addEventListener("click", async () => {
     }
     weatherResult.textContent = `${describeWeather(current.weather_code)} · ${current.temperature_2m.toFixed(1)} °C（現在地付近）`;
     weatherButton.textContent = "天気を更新";
+    await cityPromise;
   } catch (error) {
     const messages = {
       1: "位置情報が許可されていません。ブラウザの設定で許可して、もう一度お試しください。",
@@ -90,7 +118,9 @@ weatherButton.addEventListener("click", async () => {
       3: "現在地の取得がタイムアウトしました。もう一度お試しください。",
     };
     weatherResult.textContent = messages[error.code] ?? "天気を取得できませんでした。通信状況を確認して、もう一度お試しください。";
+    if (weatherLocation.textContent === "現在地：確認中…") weatherLocation.textContent = "現在地：未取得";
   } finally {
+    await cityPromise;
     weatherButton.disabled = false;
   }
 });
