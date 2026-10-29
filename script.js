@@ -64,12 +64,19 @@ weatherButton.addEventListener("click", async () => {
       temperature_unit: "celsius",
       timezone: "auto",
     });
-    const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`, {
-      signal: AbortSignal.timeout(15000),
-      referrerPolicy: "no-referrer",
-    });
-    if (!response.ok) throw new Error("Weather request failed");
-    const data = await response.json();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    let data;
+    try {
+      const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`, {
+        signal: controller.signal,
+        referrerPolicy: "no-referrer",
+      });
+      if (!response.ok) throw new Error("Weather request failed");
+      data = await response.json();
+    } finally {
+      clearTimeout(timeout);
+    }
     const current = data.current;
     if (!Number.isFinite(current?.temperature_2m) || !Number.isInteger(current?.weather_code)) {
       throw new Error("Invalid weather data");
