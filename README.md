@@ -1,6 +1,6 @@
 # data-hub
 
-[GitHub Pages](https://aterato.github.io/data-hub/)
+[ページはこちら](https://aterato.github.io/data-hub/)
 
 PC とモバイルデバイスのあいだで開発データをやり取りし、連携の動作を確かめるためのテスト用リポジトリです。
 
