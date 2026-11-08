@@ -4,33 +4,53 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light">
-    <title>mobile codex lab</title>
-    <link rel="stylesheet" href="styles.css?v=weather-2">
-    <script src="municipality.js?v=1" defer></script>
-    <script src="script.js?v=weather-4" defer></script>
+    <meta name="description" content="スマートフォンやPCで見つけたページを共有するURLメモ">
+    <title>URLメモ | data-hub</title>
+    <link rel="stylesheet" href="styles.css?v=url-memos-2">
+    <script src="supabase-config.js?v=1" defer></script>
+    <script src="script.js?v=url-memos-2" defer></script>
   </head>
   <body>
     <main class="card">
-      <p class="eyebrow">A SMALL SPACE FOR EXPERIMENTS</p>
-      <h1>mobile codex lab</h1>
-      <p class="intro">ひらめきを、ここから。<br>モバイルから始める小さな実験室。</p>
-      <section class="clock" aria-labelledby="clock-label">
-        <h2 id="clock-label">現在の日時</h2>
-        <time id="datetime">日時を読み込んでいます…</time>
-        <p id="timezone"></p>
-        <noscript>日時を表示するには JavaScript を有効にしてください。</noscript>
+      <header class="page-header">
+        <p class="eyebrow">DATA-HUB · SHARED BOOKMARKS</p>
+        <h1>URLメモ</h1>
+        <p class="intro">スマホで見つけたページをメモして、あとで PC からも見られる共有リストです。</p>
+      </header>
+
+      <section class="memo-composer" aria-labelledby="composer-title">
+        <h2 id="composer-title">ページをメモする</h2>
+        <form id="memo-form">
+          <label for="memo-url">URL <span class="required">必須</span></label>
+          <input id="memo-url" name="url" type="url" inputmode="url" placeholder="https://example.com/article" maxlength="2048" autocomplete="url" required>
+
+          <label for="memo-title">タイトル <span class="optional">任意</span></label>
+          <input id="memo-title" name="title" type="text" maxlength="200" placeholder="空欄の場合はドメイン名を使います">
+
+          <label for="memo-note">メモ <span class="optional">任意</span></label>
+          <textarea id="memo-note" name="note" rows="3" maxlength="3000" placeholder="あとで見たいポイントなど"></textarea>
+
+          <label for="write-passphrase">書き込み用の合言葉</label>
+          <input id="write-passphrase" name="passphrase" type="password" autocomplete="current-password" required>
+          <p class="privacy-note">一覧は公開されています。URL やメモに個人情報・秘密情報を書かないでください。合言葉は書き込み時だけ送信され、このページには保存されません。</p>
+
+          <div class="form-actions">
+            <button id="submit-button" type="submit">リストに追加</button>
+            <button id="cancel-edit" class="secondary-button" type="button" hidden>編集をやめる</button>
+          </div>
+        </form>
       </section>
-      <section class="weather" aria-labelledby="weather-label">
-        <h2 id="weather-label">現在地の天気</h2>
-        <p id="weather-location" role="status">現在地：未取得</p>
-        <p id="weather-result" role="status">ボタンを押すと、現在地の天気と気温を表示します。</p>
-        <button id="weather-button" type="button">現在地の天気を表示</button>
-        <p class="weather-note">市区町村名は国内の境界データを使い、端末内で判定します。2021年の簡略化された境界のため、境界付近や行政区域の変更により正しく判定できない場合があります。天気の取得時のみ、おおよその緯度・経度を Open-Meteo に送信します。</p>
-        <a class="weather-credit" href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Weather data by Open-Meteo</a>
-        <a class="weather-credit" href="data/README.md">境界データ：国土交通省「国土数値情報」を加工</a>
+
+      <section class="memo-list-section" aria-labelledby="list-title">
+        <div class="list-heading">
+          <h2 id="list-title">共有リスト</h2>
+          <button id="refresh-button" class="text-button" type="button">更新</button>
+        </div>
+        <p id="app-status" class="status" role="status" aria-live="polite">リストを読み込んでいます…</p>
+        <ul id="memo-list" class="memo-list"></ul>
       </section>
-      <img class="landscape" src="photos/vineyard.jpg" alt="霧がかかった山並みと街を見渡す、緑豊かなぶどう畑" width="1280" height="1280">
-      <p class="footer"><span aria-hidden="true">●</span> 少しずつ、試してみよう。</p>
+
+      <footer class="footer">スマホでも PC でも、同じリストを確認できます。</footer>
     </main>
   </body>
 </html>

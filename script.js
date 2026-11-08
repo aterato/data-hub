@@ -1,126 +1,254 @@
 "use strict";
 
-const datetime = document.getElementById("datetime");
-const timezone = document.getElementById("timezone");
-const formatter = new Intl.DateTimeFormat("ja-JP", {
+const config = window.DATA_HUB_SUPABASE_CONFIG;
+const form = document.getElementById("memo-form");
+const urlInput = document.getElementById("memo-url");
+const titleInput = document.getElementById("memo-title");
+const noteInput = document.getElementById("memo-note");
+const passphraseInput = document.getElementById("write-passphrase");
+const submitButton = document.getElementById("submit-button");
+const cancelEditButton = document.getElementById("cancel-edit");
+const refreshButton = document.getElementById("refresh-button");
+const statusElement = document.getElementById("app-status");
+const memoList = document.getElementById("memo-list");
+const dateFormatter = new Intl.DateTimeFormat("ja-JP", {
   year: "numeric",
-  month: "long",
+  month: "short",
   day: "numeric",
-  weekday: "short",
   hour: "2-digit",
   minute: "2-digit",
-  second: "2-digit",
-  hour12: false,
 });
 
-timezone.textContent = `端末のタイムゾーン：${formatter.resolvedOptions().timeZone}`;
+let editingId = null;
+let memos = [];
+let loadingMemos = false;
 
-function updateClock() {
-  const now = new Date();
-  datetime.dateTime = now.toISOString();
-  datetime.textContent = formatter.format(now);
+function setStatus(message, state = "info") {
+  statusElement.textContent = message;
+  statusElement.dataset.state = state;
 }
 
-updateClock();
-setInterval(updateClock, 1000);
+function getConfigurationError() {
+  if (!config || !config.projectUrl || !config.publishableKey
+    || config.publishableKey === "YOUR_SUPABASE_PUBLISHABLE_KEY") {
+    return "Supabase の接続設定が未完了です。README の「Supabase の設定」を参照してください。";
+  }
+  try {
+    const projectUrl = new URL(config.projectUrl);
+    if (projectUrl.protocol !== "https:" || !projectUrl.hostname.endsWith(".supabase.co")) {
+      return "Supabase の Project URL の設定を確認してください。";
+    }
+  } catch {
+    return "Supabase の Project URL の設定を確認してください。";
+  }
+  return null;
+}
 
-const weatherButton = document.getElementById("weather-button");
-const weatherResult = document.getElementById("weather-result");
-const weatherLocation = document.getElementById("weather-location");
+function createElement(tagName, className, text) {
+  const element = document.createElement(tagName);
+  if (className) element.className = className;
+  if (text !== undefined) element.textContent = text;
+  return element;
+}
 
-let municipalityData;
+function renderMemos() {
+  memoList.replaceChildren();
+  if (memos.length === 0) {
+    memoList.append(createElement("li", "empty-state", "まだメモはありません。見つけたページを追加してみましょう。"));
+    return;
+  }
 
-async function getCity(coords) {
+  for (const memo of memos) {
+    const item = createElement("li", "memo-item");
+    const heading = createElement("div", "memo-heading");
+    const link = createElement("a", "memo-title", memo.title);
+    link.href = memo.url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    heading.append(link);
+
+    const date = createElement("time", "memo-date", dateFormatter.format(new Date(memo.updated_at)));
+    date.dateTime = memo.updated_at;
+    heading.append(date);
+    item.append(heading);
+
+    const address = createElement("p", "memo-url", memo.url);
+    item.append(address);
+    if (memo.note) item.append(createElement("p", "memo-note", memo.note));
+
+    const actions = createElement("div", "memo-actions");
+    const editButton = createElement("button", "text-button", "編集");
+    editButton.type = "button";
+    editButton.addEventListener("click", () => beginEdit(memo));
+    const deleteButton = createElement("button", "text-button delete-button", "削除");
+    deleteButton.type = "button";
+    deleteButton.addEventListener("click", () => deleteMemo(memo.id));
+    actions.append(editButton, deleteButton);
+    item.append(actions);
+    memoList.append(item);
+  }
+}
+
+async function requestJson(url, options = {}) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
   try {
-    if (!municipalityData) {
-      const response = await fetch("data/municipalities.json", {signal: controller.signal});
-      if (!response.ok) return null;
-      municipalityData = await response.json();
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        apikey: config.publishableKey,
+        ...options.headers,
+      },
+    });
+    const body = await response.text();
+    let data;
+    try {
+      data = body ? JSON.parse(body) : null;
+    } catch {
+      data = null;
     }
-    return findMunicipality(municipalityData, coords.longitude, coords.latitude);
-  } catch {
-    return null;
+    if (!response.ok) {
+      const message = typeof data?.error === "string" ? data.error
+        : typeof data?.message === "string" ? data.message : "";
+      throw new Error(message || `リクエストに失敗しました（${response.status}）。`);
+    }
+    return data;
   } finally {
     clearTimeout(timeout);
   }
 }
 
-function describeWeather(code) {
-  const descriptions = {
-    0: "快晴", 1: "晴れ", 2: "晴れ時々くもり", 3: "くもり",
-    45: "霧", 48: "着氷性の霧",
-    51: "弱い霧雨", 53: "霧雨", 55: "強い霧雨",
-    56: "弱い着氷性の霧雨", 57: "強い着氷性の霧雨",
-    61: "小雨", 63: "雨", 65: "強い雨", 66: "弱い着氷性の雨", 67: "強い着氷性の雨",
-    71: "小雪", 73: "雪", 75: "強い雪", 77: "雪粒",
-    80: "弱いにわか雨", 81: "にわか雨", 82: "激しいにわか雨",
-    85: "弱いにわか雪", 86: "強いにわか雪",
-    95: "雷雨", 96: "ひょうを伴う雷雨", 99: "強いひょうを伴う雷雨",
-  };
-  return descriptions[code] ?? "天気不明";
-}
-
-weatherButton.addEventListener("click", async () => {
-  if (!navigator.geolocation) {
-    weatherResult.textContent = "このブラウザは位置情報に対応していません。";
+async function loadMemos({silent = false} = {}) {
+  if (loadingMemos) return;
+  const configurationError = getConfigurationError();
+  if (configurationError) {
+    setStatus(configurationError, "error");
     return;
   }
 
-  weatherButton.disabled = true;
-  weatherLocation.textContent = "現在地：確認中…";
-  weatherResult.textContent = "現在地を確認しています…";
-  let cityPromise;
+  loadingMemos = true;
+  if (!silent) setStatus("共有リストを読み込んでいます…");
+  refreshButton.disabled = true;
   try {
-    const position = await new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, reject, {
-        enableHighAccuracy: false, timeout: 15000, maximumAge: 300000,
-      });
+    const query = new URLSearchParams({
+      select: "id,url,title,note,created_at,updated_at",
+      order: "updated_at.desc",
     });
-    cityPromise = getCity(position.coords);
-    weatherLocation.textContent = "現在地：市区町村名を取得しています…";
-    cityPromise.then(city => {
-      weatherLocation.textContent = city ? `現在地：${city}` : "現在地：市区町村を判定できませんでした（国内の陸地のみ対応）";
-    });
-    weatherResult.textContent = "天気を取得しています…";
-    const params = new URLSearchParams({
-      latitude: position.coords.latitude.toFixed(2),
-      longitude: position.coords.longitude.toFixed(2),
-      current: "temperature_2m,weather_code",
-      temperature_unit: "celsius",
-      timezone: "auto",
-    });
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
-    let data;
-    try {
-      const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`, {
-        signal: controller.signal,
-        referrerPolicy: "no-referrer",
-      });
-      if (!response.ok) throw new Error("Weather request failed");
-      data = await response.json();
-    } finally {
-      clearTimeout(timeout);
-    }
-    const current = data.current;
-    if (!Number.isFinite(current?.temperature_2m) || !Number.isInteger(current?.weather_code)) {
-      throw new Error("Invalid weather data");
-    }
-    weatherResult.textContent = `${describeWeather(current.weather_code)} · ${current.temperature_2m.toFixed(1)} °C（現在地付近）`;
-    weatherButton.textContent = "天気を更新";
-    await cityPromise;
+    const result = await requestJson(`${config.projectUrl}/rest/v1/url_memos?${query}`);
+    if (!Array.isArray(result)) throw new Error("Supabase から予期しない応答がありました。");
+    memos = result;
+    renderMemos();
+    if (!silent) setStatus(memos.length ? `${memos.length} 件のメモ` : "共有リストは空です。");
   } catch (error) {
-    const messages = {
-      1: "位置情報が許可されていません。ブラウザの設定で許可して、もう一度お試しください。",
-      2: "現在地を取得できませんでした。端末の位置情報設定を確認してください。",
-      3: "現在地の取得がタイムアウトしました。もう一度お試しください。",
-    };
-    weatherResult.textContent = messages[error.code] ?? "天気を取得できませんでした。通信状況を確認して、もう一度お試しください。";
-    if (weatherLocation.textContent === "現在地：確認中…") weatherLocation.textContent = "現在地：未取得";
+    setStatus(`共有リストを読み込めませんでした。${error.message}`, "error");
   } finally {
-    await cityPromise;
-    weatherButton.disabled = false;
+    refreshButton.disabled = false;
+    loadingMemos = false;
+  }
+}
+
+function beginEdit(memo) {
+  editingId = memo.id;
+  urlInput.value = memo.url;
+  titleInput.value = memo.title;
+  noteInput.value = memo.note;
+  submitButton.textContent = "変更を保存";
+  cancelEditButton.hidden = false;
+  urlInput.focus();
+  setStatus("内容を編集して保存してください。");
+}
+
+function resetForm() {
+  form.reset();
+  editingId = null;
+  submitButton.textContent = "リストに追加";
+  cancelEditButton.hidden = true;
+}
+
+function memoPayload() {
+  const url = new URL(urlInput.value.trim());
+  if (url.protocol !== "https:" && url.protocol !== "http:") {
+    throw new Error("URL には http:// または https:// を指定してください。");
+  }
+  return {
+    url: url.href,
+    title: titleInput.value.trim() || url.hostname,
+    note: noteInput.value.trim(),
+  };
+}
+
+async function writeMemo(action, payload) {
+  const passphrase = passphraseInput.value;
+  if (!passphrase) throw new Error("書き込み用の合言葉を入力してください。");
+  try {
+    return await requestJson(`${config.projectUrl}/functions/v1/memos`, {
+      method: "POST",
+      headers: {"content-type": "application/json", "x-write-passphrase": passphrase},
+      body: JSON.stringify({action, ...payload}),
+    });
+  } finally {
+    passphraseInput.value = "";
+  }
+}
+
+form.addEventListener("submit", async event => {
+  event.preventDefault();
+  const configurationError = getConfigurationError();
+  if (configurationError) {
+    setStatus(configurationError, "error");
+    return;
+  }
+
+  submitButton.disabled = true;
+  try {
+    const wasEditing = Boolean(editingId);
+    const payload = memoPayload();
+    await writeMemo(editingId ? "update" : "create", editingId ? {id: editingId, ...payload} : payload);
+    resetForm();
+    setStatus(wasEditing ? "メモを更新しました。" : "メモを追加しました。", "success");
+    await loadMemos({silent: true});
+  } catch (error) {
+    setStatus(`保存できませんでした。${error.message}`, "error");
+  } finally {
+    submitButton.disabled = false;
   }
 });
+
+async function deleteMemo(id) {
+  if (!window.confirm("このメモを削除しますか？")) return;
+  const configurationError = getConfigurationError();
+  if (configurationError) {
+    setStatus(configurationError, "error");
+    return;
+  }
+
+  setStatus("メモを削除しています…");
+  try {
+    await writeMemo("delete", {id});
+    if (editingId === id) resetForm();
+    setStatus("メモを削除しました。", "success");
+    await loadMemos({silent: true});
+  } catch (error) {
+    setStatus(`削除できませんでした。${error.message}`, "error");
+  }
+}
+
+cancelEditButton.addEventListener("click", () => {
+  resetForm();
+  setStatus("編集を取り消しました。");
+});
+refreshButton.addEventListener("click", loadMemos);
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) loadMemos({silent: true});
+});
+setInterval(() => {
+  if (!document.hidden) loadMemos({silent: true});
+}, 30000);
+
+if (getConfigurationError()) {
+  form.querySelectorAll("input, textarea, button").forEach(control => {
+    if (control !== refreshButton) control.disabled = true;
+  });
+}
+loadMemos();
