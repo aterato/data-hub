@@ -11,6 +11,12 @@ const cancelEditButton = document.getElementById("cancel-edit");
 const refreshButton = document.getElementById("refresh-button");
 const statusElement = document.getElementById("app-status");
 const memoList = document.getElementById("memo-list");
+const deleteDialog = document.getElementById("delete-dialog");
+const deleteForm = document.getElementById("delete-form");
+const deletePassphraseInput = document.getElementById("delete-passphrase");
+const deleteDialogMessage = document.getElementById("delete-dialog-message");
+const deleteStatusElement = document.getElementById("delete-status");
+const confirmDeleteButton = document.getElementById("confirm-delete");
 const dateFormatter = new Intl.DateTimeFormat("ja-JP", {
   year: "numeric",
   month: "short",
@@ -20,6 +26,7 @@ const dateFormatter = new Intl.DateTimeFormat("ja-JP", {
 });
 
 let editingId = null;
+let deletingId = null;
 let memos = [];
 let loadingMemos = false;
 
@@ -82,7 +89,7 @@ function renderMemos() {
     editButton.addEventListener("click", () => beginEdit(memo));
     const deleteButton = createElement("button", "text-button delete-button", "削除");
     deleteButton.type = "button";
-    deleteButton.addEventListener("click", () => deleteMemo(memo.id));
+    deleteButton.addEventListener("click", () => openDeleteDialog(memo));
     actions.append(editButton, deleteButton);
     item.append(actions);
     memoList.append(item);
@@ -178,18 +185,13 @@ function memoPayload() {
   };
 }
 
-async function writeMemo(action, payload) {
-  const passphrase = passphraseInput.value;
+async function writeMemo(action, payload, passphrase) {
   if (!passphrase) throw new Error("書き込み用の合言葉を入力してください。");
-  try {
-    return await requestJson(`${config.projectUrl}/functions/v1/memos`, {
-      method: "POST",
-      headers: {"content-type": "application/json", "x-write-passphrase": passphrase},
-      body: JSON.stringify({action, ...payload}),
-    });
-  } finally {
-    passphraseInput.value = "";
-  }
+  return requestJson(`${config.projectUrl}/functions/v1/memos`, {
+    method: "POST",
+    headers: {"content-type": "application/json", "x-write-passphrase": passphrase},
+    body: JSON.stringify({action, ...payload}),
+  });
 }
 
 form.addEventListener("submit", async event => {
@@ -204,35 +206,74 @@ form.addEventListener("submit", async event => {
   try {
     const wasEditing = Boolean(editingId);
     const payload = memoPayload();
-    await writeMemo(editingId ? "update" : "create", editingId ? {id: editingId, ...payload} : payload);
+    const passphrase = passphraseInput.value;
+    await writeMemo(editingId ? "update" : "create", editingId ? {id: editingId, ...payload} : payload, passphrase);
     resetForm();
     setStatus(wasEditing ? "メモを更新しました。" : "メモを追加しました。", "success");
     await loadMemos({silent: true});
   } catch (error) {
     setStatus(`保存できませんでした。${error.message}`, "error");
   } finally {
+    passphraseInput.value = "";
     submitButton.disabled = false;
   }
 });
 
-async function deleteMemo(id) {
-  if (!window.confirm("このメモを削除しますか？")) return;
+function openDeleteDialog(memo) {
   const configurationError = getConfigurationError();
   if (configurationError) {
     setStatus(configurationError, "error");
     return;
   }
+  deletingId = memo.id;
+  deleteDialogMessage.textContent = `「${memo.title}」を削除します。この操作は取り消せません。`;
+  deleteStatusElement.textContent = "";
+  deletePassphraseInput.value = "";
+  confirmDeleteButton.disabled = false;
+  deleteDialog.showModal();
+  deletePassphraseInput.focus();
+}
 
-  setStatus("メモを削除しています…");
+async function deleteMemo() {
+  const id = deletingId;
+  const passphrase = deletePassphraseInput.value;
+  if (!id || !passphrase) {
+    deleteStatusElement.textContent = "書き込み用の合言葉を入力してください。";
+    return;
+  }
+
+  confirmDeleteButton.disabled = true;
+  deleteStatusElement.textContent = "削除しています…";
   try {
-    await writeMemo("delete", {id});
+    await writeMemo("delete", {id}, passphrase);
+    deleteDialog.close();
+    deletingId = null;
     if (editingId === id) resetForm();
     setStatus("メモを削除しました。", "success");
     await loadMemos({silent: true});
   } catch (error) {
-    setStatus(`削除できませんでした。${error.message}`, "error");
+    deleteStatusElement.textContent = `削除できませんでした。${error.message}`;
+  } finally {
+    deletePassphraseInput.value = "";
+    confirmDeleteButton.disabled = false;
   }
 }
+
+deleteForm.addEventListener("submit", event => {
+  event.preventDefault();
+  deleteMemo();
+});
+function clearDeleteDialog() {
+  deletingId = null;
+  deletePassphraseInput.value = "";
+  deleteStatusElement.textContent = "";
+}
+
+document.getElementById("cancel-delete").addEventListener("click", () => {
+  clearDeleteDialog();
+  deleteDialog.close();
+});
+deleteDialog.addEventListener("close", clearDeleteDialog);
 
 cancelEditButton.addEventListener("click", () => {
   resetForm();

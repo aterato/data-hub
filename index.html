@@ -6,9 +6,9 @@
     <meta name="color-scheme" content="light">
     <meta name="description" content="スマートフォンやPCで見つけたページを共有するURLメモ">
     <title>URLメモ | data-hub</title>
-    <link rel="stylesheet" href="styles.css?v=url-memos-2">
+    <link rel="stylesheet" href="styles.css?v=url-memos-4">
     <script src="supabase-config.js?v=1" defer></script>
-    <script src="script.js?v=url-memos-2" defer></script>
+    <script src="script.js?v=url-memos-4" defer></script>
   </head>
   <body>
     <main class="card">
@@ -52,5 +52,19 @@
 
       <footer class="footer">スマホでも PC でも、同じリストを確認できます。</footer>
     </main>
+
+    <dialog id="delete-dialog" class="delete-dialog" aria-labelledby="delete-dialog-title">
+      <form id="delete-form">
+        <h2 id="delete-dialog-title">メモを削除</h2>
+        <p id="delete-dialog-message" class="dialog-message"></p>
+        <label for="delete-passphrase">書き込み用の合言葉</label>
+        <input id="delete-passphrase" type="password" autocomplete="current-password" required>
+        <p id="delete-status" class="dialog-status" role="status" aria-live="polite"></p>
+        <div class="dialog-actions">
+          <button id="cancel-delete" class="secondary-button" type="button">キャンセル</button>
+          <button id="confirm-delete" class="danger-button" type="submit">削除する</button>
+        </div>
+      </form>
+    </dialog>
   </body>
 </html>
