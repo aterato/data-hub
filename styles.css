@@ -85,6 +85,43 @@ button:disabled { opacity: .6; cursor: wait; }
 .memo-actions { display: flex; justify-content: flex-end; gap: 4px; margin: 8px -6px -6px; }
 .footer { margin: 24px 0 0; color: #718078; font-size: 12px; text-align: center; }
 
+.delete-dialog {
+  width: min(calc(100% - 32px), 440px);
+  padding: 0;
+  border: 1px solid #dbe5dd;
+  border-radius: 20px;
+  color: #213b32;
+  box-shadow: 0 24px 70px #213b3230;
+}
+.delete-dialog::backdrop { background: #15291fb0; }
+.delete-dialog form { display: grid; gap: 12px; padding: 24px; }
+.delete-dialog h2 { margin: 0; }
+.delete-dialog label { margin-top: 4px; font-size: 13px; font-weight: 600; }
+.delete-dialog input {
+  width: 100%;
+  min-height: 44px;
+  padding: 11px 12px;
+  border: 1px solid #cbd9ce;
+  border-radius: 10px;
+  background: #fff;
+  color: #213b32;
+  font: inherit;
+}
+.delete-dialog input:focus { outline: 3px solid #b8d7c1; border-color: #537765; }
+.dialog-message, .dialog-status { margin: 0; font-size: 14px; line-height: 1.7; overflow-wrap: anywhere; }
+.dialog-status { min-height: 1.5em; color: #9a4034; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.danger-button {
+  min-height: 44px;
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 10px;
+  background: #914e43;
+  color: #fff;
+  cursor: pointer;
+}
+.danger-button:hover { background: #793d34; }
+
 @media (max-width: 520px) {
   body { padding: 12px; }
   .card { border-radius: 20px; }
