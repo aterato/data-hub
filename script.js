@@ -6,6 +6,7 @@ const urlInput = document.getElementById("memo-url");
 const titleInput = document.getElementById("memo-title");
 const noteInput = document.getElementById("memo-note");
 const categoryInput = document.getElementById("memo-category");
+const categoryChoices = document.getElementById("category-choices");
 const passphraseInput = document.getElementById("write-passphrase");
 const submitButton = document.getElementById("submit-button");
 const cancelEditButton = document.getElementById("cancel-edit");
@@ -70,6 +71,49 @@ function createElement(tagName, className, text) {
   if (className) element.className = className;
   if (text !== undefined) element.textContent = text;
   return element;
+}
+
+function setCategorySelection(categoryId) {
+  const selectionExists = categoryId === ""
+    || categories.some(category => category.id === categoryId);
+  categoryInput.value = selectionExists ? categoryId : "";
+  categoryChoices.querySelectorAll('input[name="category-choice"]').forEach(radio => {
+    radio.checked = radio.value === categoryInput.value;
+  });
+}
+
+function renderCategoryChoices(selectedCategoryId = categoryInput.value) {
+  categoryChoices.replaceChildren();
+  const options = [
+    {id: "", name: "未分類", color: "#718078"},
+    ...categories,
+  ];
+
+  for (const [index, category] of options.entries()) {
+    const option = createElement("div", "category-choice-option");
+    const radio = createElement("input", "category-choice-input");
+    radio.type = "radio";
+    radio.name = "category-choice";
+    radio.id = `memo-category-option-${index}`;
+    radio.value = category.id;
+    radio.checked = category.id === selectedCategoryId;
+    radio.addEventListener("change", () => {
+      if (radio.checked) categoryInput.value = radio.value;
+    });
+
+    const label = createElement("label", "category-chip");
+    label.htmlFor = radio.id;
+    label.style.setProperty("--chip-color", category.color);
+    const checkmark = createElement("span", "category-chip-check", "✓");
+    checkmark.setAttribute("aria-hidden", "true");
+    label.append(
+      createElement("span", "category-chip-name", category.name),
+      checkmark,
+    );
+    option.append(radio, label);
+    categoryChoices.append(option);
+  }
+  setCategorySelection(selectedCategoryId);
 }
 
 function renderMemos() {
@@ -206,10 +250,9 @@ async function loadCategories() {
   }
   categories = result;
 
-  categoryInput.replaceChildren(new Option("未分類", ""));
+  renderCategoryChoices();
   categoryFilter.replaceChildren(new Option("すべて", "all"));
   for (const category of categories) {
-    categoryInput.add(new Option(category.name, category.id));
     categoryFilter.add(new Option(category.name, category.id));
   }
   categoryFilter.add(new Option("未分類", "unclassified"));
@@ -255,7 +298,7 @@ function beginEdit(memo) {
   urlInput.value = memo.url;
   titleInput.value = memo.title;
   noteInput.value = memo.note;
-  categoryInput.value = memo.category_id ?? "";
+  setCategorySelection(memo.category_id ?? "");
   submitButton.textContent = "変更を保存";
   cancelEditButton.hidden = false;
   urlInput.focus();
@@ -264,6 +307,7 @@ function beginEdit(memo) {
 
 function resetForm() {
   form.reset();
+  setCategorySelection("");
   editingId = null;
   submitButton.textContent = "追加";
   cancelEditButton.hidden = true;

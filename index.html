@@ -6,9 +6,9 @@
     <meta name="color-scheme" content="light">
     <meta name="description" content="スマートフォンやPCで見つけたページを共有するURLメモ">
     <title>URLメモ | data-hub</title>
-    <link rel="stylesheet" href="styles.css?v=url-memos-7">
+    <link rel="stylesheet" href="styles.css?v=url-memos-8">
     <script src="supabase-config.js?v=1" defer></script>
-    <script src="script.js?v=url-memos-7" defer></script>
+    <script src="script.js?v=url-memos-8" defer></script>
   </head>
   <body>
     <main class="card">
@@ -41,10 +41,10 @@
           <label for="memo-note">メモ <span class="optional">任意</span></label>
           <textarea id="memo-note" name="note" rows="3" maxlength="3000" placeholder="あとで見たいポイントなど"></textarea>
 
-          <label for="memo-category">カテゴリ <span class="optional">任意</span></label>
-          <select id="memo-category" name="category_id">
-            <option value="">未分類</option>
-          </select>
+          <span id="memo-category-label" class="category-field-label">カテゴリ <span class="optional">任意</span></span>
+          <input id="memo-category" name="category_id" type="hidden" value="">
+          <div id="category-choices" class="category-choices" role="radiogroup" aria-labelledby="memo-category-label" aria-describedby="category-choice-hint"></div>
+          <p id="category-choice-hint" class="category-choice-hint">1つ選択できます。キーボードでは矢印キーで切り替えます。</p>
 
           <label for="write-passphrase">合言葉</label>
           <input id="write-passphrase" name="passphrase" type="password" autocomplete="current-password" required>
