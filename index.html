@@ -6,9 +6,9 @@
     <meta name="color-scheme" content="light">
     <meta name="description" content="スマートフォンやPCで見つけたページを共有するURLメモ">
     <title>URLメモ | data-hub</title>
-    <link rel="stylesheet" href="styles.css?v=url-memos-6">
+    <link rel="stylesheet" href="styles.css?v=url-memos-7">
     <script src="supabase-config.js?v=1" defer></script>
-    <script src="script.js?v=url-memos-6" defer></script>
+    <script src="script.js?v=url-memos-7" defer></script>
   </head>
   <body>
     <main class="card">
@@ -41,6 +41,11 @@
           <label for="memo-note">メモ <span class="optional">任意</span></label>
           <textarea id="memo-note" name="note" rows="3" maxlength="3000" placeholder="あとで見たいポイントなど"></textarea>
 
+          <label for="memo-category">カテゴリ <span class="optional">任意</span></label>
+          <select id="memo-category" name="category_id">
+            <option value="">未分類</option>
+          </select>
+
           <label for="write-passphrase">合言葉</label>
           <input id="write-passphrase" name="passphrase" type="password" autocomplete="current-password" required>
           <p class="privacy-note">一覧は公開されています。URL やメモに個人情報・秘密情報を書かないでください。合言葉は書き込み時だけ送信され、このページには保存されません。</p>
@@ -57,6 +62,10 @@
           <h2 id="list-title">共有リスト</h2>
           <button id="refresh-button" class="text-button" type="button">更新</button>
         </div>
+        <label class="filter-label" for="category-filter">カテゴリで絞り込み</label>
+        <select id="category-filter" class="category-filter">
+          <option value="all">すべて</option>
+        </select>
         <p id="app-status" class="status" role="status" aria-live="polite">リストを読み込んでいます…</p>
         <ul id="memo-list" class="memo-list"></ul>
       </section>
