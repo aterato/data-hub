@@ -49,10 +49,10 @@ h2 { margin: 0; color: #537765; font-size: 16px; }
 .access-status:empty { display: none; }
 
 #memo-form { display: grid; gap: 10px; margin-top: 18px; }
-#memo-form label { margin-top: 4px; font-size: 13px; font-weight: 600; }
+#memo-form > label, .category-field-label { margin-top: 4px; font-size: 13px; font-weight: 600; }
 .required, .optional { margin-left: 5px; color: #718078; font-size: 11px; font-weight: 400; }
 .required { color: #8b5647; }
-#memo-form input, #memo-form textarea, #memo-form select, .category-filter {
+#memo-form input:not([type="hidden"]), #memo-form textarea, .category-filter {
   width: 100%;
   min-height: 44px;
   padding: 11px 12px;
@@ -63,10 +63,52 @@ h2 { margin: 0; color: #537765; font-size: 16px; }
   font: inherit;
 }
 #memo-form textarea { min-height: 88px; resize: vertical; }
-#memo-form input:focus, #memo-form textarea:focus, #memo-form select:focus, .category-filter:focus {
+#memo-form input:not([type="hidden"]):focus, #memo-form textarea:focus, .category-filter:focus {
   outline: 3px solid #b8d7c1;
   border-color: #537765;
 }
+.category-choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.category-choice-option { position: relative; }
+.category-choice-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.category-chip {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 13px;
+  border: 1px solid #cbd9ce;
+  border-radius: 999px;
+  background: #fff;
+  color: #43564c;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1.4;
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+}
+.category-chip-check { visibility: hidden; color: var(--chip-color); font-weight: 800; }
+.category-choice-input:checked + .category-chip {
+  border-color: var(--chip-color);
+  background: color-mix(in srgb, var(--chip-color) 13%, #fff);
+  color: var(--chip-color);
+  font-weight: 650;
+}
+.category-choice-input:checked + .category-chip .category-chip-check { visibility: visible; }
+.category-choice-input:focus-visible + .category-chip {
+  outline: 3px solid #b8d7c1;
+  outline-offset: 3px;
+}
+.category-chip:hover { border-color: var(--chip-color); }
+.category-choice-hint { margin: -4px 0 0; color: #718078; font-size: 11px; line-height: 1.5; }
 .privacy-note { margin: 0; color: #5c7066; font-size: 12px; line-height: 1.7; }
 .form-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
 button { font: inherit; }
