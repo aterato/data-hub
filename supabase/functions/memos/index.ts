@@ -25,7 +25,12 @@ function isValidPassphrase(received: string, expected: string) {
     && timingSafeEqual(receivedBytes, expectedBytes);
 }
 
-function validateMemo(value: Record<string, unknown>) {
+function validateMemo(value: Record<string, unknown>): {
+  url: string;
+  title: string;
+  note: string;
+  category_id?: string | null;
+} {
   if (typeof value.url !== "string" || value.url.length > 2048) {
     throw new Error("URLは2048文字以内で入力してください。");
   }
@@ -48,7 +53,20 @@ function validateMemo(value: Record<string, unknown>) {
   if (note.length > 3000) {
     throw new Error("メモは3000文字以内で入力してください。");
   }
-  return {url: url.href, title, note};
+  const memo: {url: string; title: string; note: string; category_id?: string | null} = {
+    url: url.href,
+    title,
+    note,
+  };
+  if ("category_id" in value) {
+    if (value.category_id !== null
+      && (typeof value.category_id !== "string"
+        || !/^[a-z0-9][a-z0-9_-]{0,62}$/.test(value.category_id))) {
+      throw new Error("カテゴリの指定が正しくありません。");
+    }
+    memo.category_id = value.category_id;
+  }
+  return memo;
 }
 
 function validId(value: unknown): value is string {
@@ -168,7 +186,7 @@ Deno.serve(async request => {
     return jsonResponse({error: "認証履歴を保存できませんでした。"}, 502);
   }
 
-  let memo: {url: string; title: string; note: string} | undefined;
+  let memo: {url: string; title: string; note: string; category_id?: string | null} | undefined;
   if (action !== "delete") {
     try {
       memo = validateMemo(body);

@@ -5,12 +5,14 @@ const form = document.getElementById("memo-form");
 const urlInput = document.getElementById("memo-url");
 const titleInput = document.getElementById("memo-title");
 const noteInput = document.getElementById("memo-note");
+const categoryInput = document.getElementById("memo-category");
 const passphraseInput = document.getElementById("write-passphrase");
 const submitButton = document.getElementById("submit-button");
 const cancelEditButton = document.getElementById("cancel-edit");
 const refreshButton = document.getElementById("refresh-button");
 const statusElement = document.getElementById("app-status");
 const memoList = document.getElementById("memo-list");
+const categoryFilter = document.getElementById("category-filter");
 const lastAccessElement = document.getElementById("last-access");
 const accessCountElement = document.getElementById("access-count");
 const accessStatusElement = document.getElementById("access-status");
@@ -39,6 +41,7 @@ const accessDateFormatter = new Intl.DateTimeFormat("ja-JP", {
 let editingId = null;
 let deletingId = null;
 let memos = [];
+let categories = [];
 let loadingMemos = false;
 
 function setStatus(message, state = "info") {
@@ -76,8 +79,26 @@ function renderMemos() {
     return;
   }
 
-  for (const memo of memos) {
+  const visibleMemos = memos.filter(memo => {
+    if (categoryFilter.value === "all") return true;
+    if (categoryFilter.value === "unclassified") return !memo.category_id;
+    return memo.category_id === categoryFilter.value;
+  });
+  if (visibleMemos.length === 0) {
+    memoList.append(createElement("li", "empty-state", "このカテゴリのメモはありません。"));
+    return;
+  }
+
+  const categoryById = new Map(categories.map(category => [category.id, category]));
+  for (const memo of visibleMemos) {
     const item = createElement("li", "memo-item");
+    const category = categoryById.get(memo.category_id);
+    if (category) {
+      const badge = createElement("span", "category-badge", category.name);
+      badge.style.setProperty("--badge-color", category.color);
+      item.append(badge);
+    }
+
     const heading = createElement("div", "memo-heading");
     const link = createElement("a", "memo-title", memo.title);
     link.href = memo.url;
@@ -150,7 +171,7 @@ async function loadMemos({silent = false} = {}) {
   refreshButton.disabled = true;
   try {
     const query = new URLSearchParams({
-      select: "id,url,title,note,created_at,updated_at",
+      select: "id,url,title,note,category_id,created_at,updated_at",
       order: "updated_at.desc",
     });
     const result = await requestJson(`${config.projectUrl}/rest/v1/url_memos?${query}`);
@@ -163,6 +184,37 @@ async function loadMemos({silent = false} = {}) {
   } finally {
     refreshButton.disabled = false;
     loadingMemos = false;
+  }
+}
+
+async function loadCategories() {
+  const configurationError = getConfigurationError();
+  if (configurationError) {
+    setStatus(configurationError, "error");
+    return;
+  }
+
+  const query = new URLSearchParams({
+    select: "id,name,color,sort_order",
+    order: "sort_order.asc,name.asc",
+  });
+  const result = await requestJson(`${config.projectUrl}/rest/v1/memo_categories?${query}`);
+  if (!Array.isArray(result) || result.some(category =>
+    !category || typeof category.id !== "string" || typeof category.name !== "string"
+    || typeof category.color !== "string" || !/^#[0-9a-f]{6}$/i.test(category.color))) {
+    throw new Error("カテゴリ情報の形式が正しくありません。");
+  }
+  categories = result;
+
+  categoryInput.replaceChildren(new Option("未分類", ""));
+  categoryFilter.replaceChildren(new Option("すべて", "all"));
+  for (const category of categories) {
+    categoryInput.add(new Option(category.name, category.id));
+    categoryFilter.add(new Option(category.name, category.id));
+  }
+  categoryFilter.add(new Option("未分類", "unclassified"));
+  if (![...categoryFilter.options].some(option => option.value === categoryFilter.value)) {
+    categoryFilter.value = "all";
   }
 }
 
@@ -203,6 +255,7 @@ function beginEdit(memo) {
   urlInput.value = memo.url;
   titleInput.value = memo.title;
   noteInput.value = memo.note;
+  categoryInput.value = memo.category_id ?? "";
   submitButton.textContent = "変更を保存";
   cancelEditButton.hidden = false;
   urlInput.focus();
@@ -225,6 +278,7 @@ function memoPayload() {
     url: url.href,
     title: titleInput.value.trim() || url.hostname,
     note: noteInput.value.trim(),
+    category_id: categoryInput.value || null,
   };
 }
 
@@ -327,9 +381,12 @@ cancelEditButton.addEventListener("click", () => {
   setStatus("編集を取り消しました。");
 });
 refreshButton.addEventListener("click", () => {
-  loadMemos();
+  loadCategories()
+    .then(() => loadMemos())
+    .catch(error => setStatus(`カテゴリを読み込めませんでした。${error.message}`, "error"));
   loadAccessStats();
 });
+categoryFilter.addEventListener("change", renderMemos);
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden) {
     loadMemos({silent: true});
@@ -341,9 +398,11 @@ setInterval(() => {
 }, 30000);
 
 if (getConfigurationError()) {
-  form.querySelectorAll("input, textarea, button").forEach(control => {
+  form.querySelectorAll("input, textarea, select, button").forEach(control => {
     if (control !== refreshButton) control.disabled = true;
   });
 }
-loadMemos();
+loadCategories()
+  .then(() => loadMemos())
+  .catch(error => setStatus(`カテゴリを読み込めませんでした。${error.message}`, "error"));
 loadAccessStats();

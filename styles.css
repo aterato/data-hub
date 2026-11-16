@@ -52,7 +52,7 @@ h2 { margin: 0; color: #537765; font-size: 16px; }
 #memo-form label { margin-top: 4px; font-size: 13px; font-weight: 600; }
 .required, .optional { margin-left: 5px; color: #718078; font-size: 11px; font-weight: 400; }
 .required { color: #8b5647; }
-#memo-form input, #memo-form textarea {
+#memo-form input, #memo-form textarea, #memo-form select, .category-filter {
   width: 100%;
   min-height: 44px;
   padding: 11px 12px;
@@ -63,7 +63,10 @@ h2 { margin: 0; color: #537765; font-size: 16px; }
   font: inherit;
 }
 #memo-form textarea { min-height: 88px; resize: vertical; }
-#memo-form input:focus, #memo-form textarea:focus { outline: 3px solid #b8d7c1; border-color: #537765; }
+#memo-form input:focus, #memo-form textarea:focus, #memo-form select:focus, .category-filter:focus {
+  outline: 3px solid #b8d7c1;
+  border-color: #537765;
+}
 .privacy-note { margin: 0; color: #5c7066; font-size: 12px; line-height: 1.7; }
 .form-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
 button { font: inherit; }
@@ -82,6 +85,8 @@ button:disabled { opacity: .6; cursor: wait; }
 [hidden] { display: none !important; }
 
 .list-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.filter-label { display: block; margin: 14px 0 6px; color: #5c7066; font-size: 12px; font-weight: 600; }
+.category-filter { padding: 9px 12px; border: 1px solid #cbd9ce; border-radius: 10px; background: #fff; color: #213b32; font: inherit; }
 .text-button { padding: 7px 9px; border: 0; border-radius: 7px; background: transparent; color: #315f48; cursor: pointer; }
 .text-button:hover { background: #e4eee6; }
 .delete-button { color: #914e43; }
@@ -91,6 +96,7 @@ button:disabled { opacity: .6; cursor: wait; }
 .memo-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
 .empty-state { padding: 18px 0; color: #718078; font-size: 14px; line-height: 1.7; }
 .memo-item { min-width: 0; padding: 16px; border: 1px solid #e0e8e1; border-radius: 12px; background: #fff; }
+.category-badge { display: inline-block; margin-bottom: 8px; padding: 3px 8px; border: 1px solid var(--badge-color); border-radius: 999px; background: #f7f8f4; color: var(--badge-color); font-size: 11px; font-weight: 600; line-height: 1.4; }
 .memo-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .memo-title { min-width: 0; color: #315f48; font-size: 16px; font-weight: 650; line-height: 1.5; overflow-wrap: anywhere; }
 .memo-title:hover { color: #254a37; }
