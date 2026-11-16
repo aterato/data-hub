@@ -56,27 +56,71 @@ function validId(value: unknown): value is string {
     && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
+function serviceHeaders(serviceRoleKey: string) {
+  return {
+    apikey: serviceRoleKey,
+    Authorization: `Bearer ${serviceRoleKey}`,
+    "Content-Type": "application/json",
+  };
+}
+
+async function getMemoAccessStats(projectUrl: string, serviceRoleKey: string) {
+  const endpoint = new URL("/rest/v1/memo_access_stats", projectUrl);
+  endpoint.searchParams.set("select", "last_access_at,access_count");
+  endpoint.searchParams.set("id", "eq.true");
+  const response = await fetch(endpoint, {headers: serviceHeaders(serviceRoleKey)});
+  if (!response.ok) throw new Error(`Access stats query failed (${response.status}).`);
+
+  const rows: unknown = await response.json();
+  if (!Array.isArray(rows) || rows.length !== 1 || !isRecord(rows[0])) {
+    throw new Error("Access stats response has an invalid shape.");
+  }
+  const row = rows[0];
+  if ((row.last_access_at !== null && typeof row.last_access_at !== "string")
+    || (typeof row.access_count !== "number" && typeof row.access_count !== "string")) {
+    throw new Error("Access stats response has an invalid shape.");
+  }
+  return {
+    lastAccessAt: row.last_access_at,
+    accessCount: row.access_count,
+  };
+}
+
+async function recordMemoAccess(projectUrl: string, serviceRoleKey: string) {
+  const endpoint = new URL("/rest/v1/rpc/record_memo_access", projectUrl);
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: serviceHeaders(serviceRoleKey),
+    body: "{}",
+  });
+  if (!response.ok) throw new Error(`Access stats update failed (${response.status}).`);
+
+  const rows: unknown = await response.json();
+  if (!Array.isArray(rows) || rows.length !== 1 || !isRecord(rows[0])) {
+    throw new Error("Access stats update response has an invalid shape.");
+  }
+  const row = rows[0];
+  if (typeof row.last_access_at !== "string"
+    || (typeof row.access_count !== "number" && typeof row.access_count !== "string")) {
+    throw new Error("Access stats update response has an invalid shape.");
+  }
+  return {
+    lastAccessAt: row.last_access_at,
+    accessCount: row.access_count,
+  };
+}
+
 Deno.serve(async request => {
   if (request.method === "OPTIONS") {
     return new Response(null, {status: 204, headers: corsHeaders});
   }
   if (request.method !== "POST") return jsonResponse({error: "POST only"}, 405);
 
-  const expectedPassphrase = Deno.env.get("WRITE_PASSPHRASE");
   const projectUrl = Deno.env.get("SUPABASE_URL");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!expectedPassphrase || !projectUrl || !serviceRoleKey) {
-    console.error("Required Edge Function secrets are not configured.");
+  if (!projectUrl || !serviceRoleKey) {
+    console.error("Required Supabase environment variables are not configured.");
     return jsonResponse({error: "書き込み機能の設定が完了していません。"}, 503);
-  }
-  if (new TextEncoder().encode(expectedPassphrase).length < 12) {
-    console.error("WRITE_PASSPHRASE must contain at least 12 UTF-8 bytes.");
-    return jsonResponse({error: "書き込み機能の合言葉設定を確認してください。"}, 503);
-  }
-
-  const receivedPassphrase = request.headers.get("x-write-passphrase") ?? "";
-  if (!isValidPassphrase(receivedPassphrase, expectedPassphrase)) {
-    return jsonResponse({error: "合言葉が違います。"}, 401);
   }
 
   let body: unknown;
@@ -90,8 +134,38 @@ Deno.serve(async request => {
   }
 
   const action = body.action;
+  if (action === "stats") {
+    try {
+      return jsonResponse(await getMemoAccessStats(projectUrl, serviceRoleKey));
+    } catch (error) {
+      console.error("Could not read memo access stats.", error);
+      return jsonResponse({error: "利用状況を読み込めませんでした。"}, 502);
+    }
+  }
   if (action !== "create" && action !== "update" && action !== "delete") {
     return jsonResponse({error: "対応していない操作です。"}, 400);
+  }
+
+  const expectedPassphrase = Deno.env.get("WRITE_PASSPHRASE");
+  if (!expectedPassphrase) {
+    console.error("WRITE_PASSPHRASE is not configured.");
+    return jsonResponse({error: "書き込み機能の合言葉設定を確認してください。"}, 503);
+  }
+  if (new TextEncoder().encode(expectedPassphrase).length < 12) {
+    console.error("WRITE_PASSPHRASE must contain at least 12 UTF-8 bytes.");
+    return jsonResponse({error: "書き込み機能の合言葉設定を確認してください。"}, 503);
+  }
+
+  const receivedPassphrase = request.headers.get("x-write-passphrase") ?? "";
+  if (!isValidPassphrase(receivedPassphrase, expectedPassphrase)) {
+    return jsonResponse({error: "合言葉が違います。"}, 401);
+  }
+
+  try {
+    await recordMemoAccess(projectUrl, serviceRoleKey);
+  } catch (error) {
+    console.error("Could not record successful passphrase authentication.", error);
+    return jsonResponse({error: "認証履歴を保存できませんでした。"}, 502);
   }
 
   let memo: {url: string; title: string; note: string} | undefined;
@@ -108,8 +182,7 @@ Deno.serve(async request => {
 
   const endpoint = new URL("/rest/v1/url_memos", projectUrl);
   const headers = {
-    apikey: serviceRoleKey,
-    Authorization: `Bearer ${serviceRoleKey}`,
+    ...serviceHeaders(serviceRoleKey),
     "Content-Type": "application/json",
     Prefer: "return=representation",
   };

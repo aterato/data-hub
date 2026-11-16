@@ -32,6 +32,22 @@ h2 { margin: 0; color: #537765; font-size: 16px; }
 }
 .memo-list-section { margin-top: 16px; background: #f7f8f4; }
 
+.access-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+  padding: 18px 22px;
+  border: 1px solid #dbe5dd;
+  border-radius: 16px;
+  background: #fff;
+}
+.access-stat { display: grid; gap: 5px; min-width: 0; }
+.access-stat-label { color: #718078; font-size: 12px; }
+.access-stat time, .access-stat strong { color: #315f48; font-size: 16px; font-weight: 650; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.access-status { grid-column: 1 / -1; margin: 0; color: #9a4034; font-size: 12px; line-height: 1.5; }
+.access-status:empty { display: none; }
+
 #memo-form { display: grid; gap: 10px; margin-top: 18px; }
 #memo-form label { margin-top: 4px; font-size: 13px; font-weight: 600; }
 .required, .optional { margin-left: 5px; color: #718078; font-size: 11px; font-weight: 400; }
@@ -126,4 +142,5 @@ button:disabled { opacity: .6; cursor: wait; }
   body { padding: 12px; }
   .card { border-radius: 20px; }
   .memo-heading { align-items: flex-start; flex-direction: column; gap: 4px; }
+  .access-stats { gap: 10px; padding: 16px; }
 }
