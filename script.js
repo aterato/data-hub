@@ -169,7 +169,7 @@ function beginEdit(memo) {
 function resetForm() {
   form.reset();
   editingId = null;
-  submitButton.textContent = "リストに追加";
+  submitButton.textContent = "追加";
   cancelEditButton.hidden = true;
 }
 
@@ -186,7 +186,7 @@ function memoPayload() {
 }
 
 async function writeMemo(action, payload, passphrase) {
-  if (!passphrase) throw new Error("書き込み用の合言葉を入力してください。");
+  if (!passphrase) throw new Error("合言葉を入力してください。");
   return requestJson(`${config.projectUrl}/functions/v1/memos`, {
     method: "POST",
     headers: {"content-type": "application/json", "x-write-passphrase": passphrase},
@@ -238,7 +238,7 @@ async function deleteMemo() {
   const id = deletingId;
   const passphrase = deletePassphraseInput.value;
   if (!id || !passphrase) {
-    deleteStatusElement.textContent = "書き込み用の合言葉を入力してください。";
+    deleteStatusElement.textContent = "合言葉を入力してください。";
     return;
   }
 
