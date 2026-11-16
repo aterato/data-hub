@@ -6,16 +6,15 @@
     <meta name="color-scheme" content="light">
     <meta name="description" content="スマートフォンやPCで見つけたページを共有するURLメモ">
     <title>URLメモ | data-hub</title>
-    <link rel="stylesheet" href="styles.css?v=url-memos-8">
+    <link rel="stylesheet" href="styles.css?v=url-memos-9">
     <script src="supabase-config.js?v=1" defer></script>
-    <script src="script.js?v=url-memos-8" defer></script>
+    <script src="script.js?v=url-memos-9" defer></script>
   </head>
   <body>
     <main class="card">
       <header class="page-header">
         <p class="eyebrow">DATA-HUB</p>
         <h1>URLメモ</h1>
-        <p class="intro">スマホで見つけたページをメモして、あとで PC からも見られる共有リストです。</p>
       </header>
 
       <section class="access-stats" aria-label="利用状況">
@@ -62,10 +61,9 @@
           <h2 id="list-title">共有リスト</h2>
           <button id="refresh-button" class="text-button" type="button">更新</button>
         </div>
-        <label class="filter-label" for="category-filter">カテゴリで絞り込み</label>
-        <select id="category-filter" class="category-filter">
-          <option value="all">すべて</option>
-        </select>
+        <span id="category-filter-label" class="filter-label">カテゴリで絞り込み</span>
+        <input id="category-filter" type="hidden" value="all">
+        <div id="category-filter-choices" class="category-filter-choices" role="radiogroup" aria-labelledby="category-filter-label"></div>
         <p id="app-status" class="status" role="status" aria-live="polite">リストを読み込んでいます…</p>
         <ul id="memo-list" class="memo-list"></ul>
       </section>
