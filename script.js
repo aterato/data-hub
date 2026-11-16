@@ -14,6 +14,7 @@ const refreshButton = document.getElementById("refresh-button");
 const statusElement = document.getElementById("app-status");
 const memoList = document.getElementById("memo-list");
 const categoryFilter = document.getElementById("category-filter");
+const categoryFilterChoices = document.getElementById("category-filter-choices");
 const lastAccessElement = document.getElementById("last-access");
 const accessCountElement = document.getElementById("access-count");
 const accessStatusElement = document.getElementById("access-status");
@@ -114,6 +115,52 @@ function renderCategoryChoices(selectedCategoryId = categoryInput.value) {
     categoryChoices.append(option);
   }
   setCategorySelection(selectedCategoryId);
+}
+
+function setCategoryFilter(value) {
+  const validValues = new Set(["all", "unclassified", ...categories.map(category => category.id)]);
+  categoryFilter.value = validValues.has(value) ? value : "all";
+  categoryFilterChoices.querySelectorAll('input[name="category-filter-choice"]').forEach(radio => {
+    radio.checked = radio.value === categoryFilter.value;
+  });
+}
+
+function renderCategoryFilters(selectedValue = categoryFilter.value) {
+  categoryFilterChoices.replaceChildren();
+  const options = [
+    {value: "all", name: "すべて", color: "#537765"},
+    ...categories.map(category => ({
+      value: category.id,
+      name: category.name,
+      color: category.color,
+    })),
+    {value: "unclassified", name: "未分類", color: "#718078"},
+  ];
+
+  for (const [index, option] of options.entries()) {
+    const item = createElement("div", "category-filter-option");
+    const radio = createElement("input", "category-filter-input");
+    radio.type = "radio";
+    radio.name = "category-filter-choice";
+    radio.id = `category-filter-option-${index}`;
+    radio.value = option.value;
+    radio.checked = option.value === selectedValue;
+    radio.addEventListener("change", () => {
+      if (!radio.checked) return;
+      categoryFilter.value = radio.value;
+      renderMemos();
+    });
+
+    const label = createElement("label", "category-filter-chip", option.name);
+    label.htmlFor = radio.id;
+    label.style.setProperty("--chip-color", option.color);
+    const checkmark = createElement("span", "category-filter-check", "✓");
+    checkmark.setAttribute("aria-hidden", "true");
+    label.append(checkmark);
+    item.append(radio, label);
+    categoryFilterChoices.append(item);
+  }
+  setCategoryFilter(selectedValue);
 }
 
 function renderMemos() {
@@ -251,14 +298,7 @@ async function loadCategories() {
   categories = result;
 
   renderCategoryChoices();
-  categoryFilter.replaceChildren(new Option("すべて", "all"));
-  for (const category of categories) {
-    categoryFilter.add(new Option(category.name, category.id));
-  }
-  categoryFilter.add(new Option("未分類", "unclassified"));
-  if (![...categoryFilter.options].some(option => option.value === categoryFilter.value)) {
-    categoryFilter.value = "all";
-  }
+  renderCategoryFilters();
 }
 
 async function loadAccessStats() {
@@ -430,7 +470,6 @@ refreshButton.addEventListener("click", () => {
     .catch(error => setStatus(`カテゴリを読み込めませんでした。${error.message}`, "error"));
   loadAccessStats();
 });
-categoryFilter.addEventListener("change", renderMemos);
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden) {
     loadMemos({silent: true});
