@@ -11,6 +11,9 @@ const cancelEditButton = document.getElementById("cancel-edit");
 const refreshButton = document.getElementById("refresh-button");
 const statusElement = document.getElementById("app-status");
 const memoList = document.getElementById("memo-list");
+const lastAccessElement = document.getElementById("last-access");
+const accessCountElement = document.getElementById("access-count");
+const accessStatusElement = document.getElementById("access-status");
 const deleteDialog = document.getElementById("delete-dialog");
 const deleteForm = document.getElementById("delete-form");
 const deletePassphraseInput = document.getElementById("delete-passphrase");
@@ -23,6 +26,14 @@ const dateFormatter = new Intl.DateTimeFormat("ja-JP", {
   day: "numeric",
   hour: "2-digit",
   minute: "2-digit",
+});
+const accessDateFormatter = new Intl.DateTimeFormat("ja-JP", {
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
 });
 
 let editingId = null;
@@ -155,6 +166,38 @@ async function loadMemos({silent = false} = {}) {
   }
 }
 
+async function loadAccessStats() {
+  const configurationError = getConfigurationError();
+  if (configurationError) {
+    accessStatusElement.textContent = configurationError;
+    return;
+  }
+
+  try {
+    const result = await requestJson(`${config.projectUrl}/functions/v1/memos`, {
+      method: "POST",
+      headers: {"content-type": "application/json"},
+      body: JSON.stringify({action: "stats"}),
+    });
+    const count = String(result?.accessCount ?? "");
+    if (!/^\d+$/.test(count)) throw new Error("利用状況の回数が正しくありません。");
+
+    accessCountElement.textContent = Number(count).toLocaleString("ja-JP");
+    if (result.lastAccessAt === null) {
+      lastAccessElement.textContent = "未記録";
+      lastAccessElement.removeAttribute("datetime");
+    } else {
+      const lastAccessDate = new Date(result.lastAccessAt);
+      if (!Number.isFinite(lastAccessDate.getTime())) throw new Error("最終アクセス日時が正しくありません。");
+      lastAccessElement.textContent = accessDateFormatter.format(lastAccessDate);
+      lastAccessElement.dateTime = lastAccessDate.toISOString();
+    }
+    accessStatusElement.textContent = "";
+  } catch (error) {
+    accessStatusElement.textContent = `利用状況を読み込めませんでした。${error.message}`;
+  }
+}
+
 function beginEdit(memo) {
   editingId = memo.id;
   urlInput.value = memo.url;
@@ -187,11 +230,15 @@ function memoPayload() {
 
 async function writeMemo(action, payload, passphrase) {
   if (!passphrase) throw new Error("合言葉を入力してください。");
-  return requestJson(`${config.projectUrl}/functions/v1/memos`, {
-    method: "POST",
-    headers: {"content-type": "application/json", "x-write-passphrase": passphrase},
-    body: JSON.stringify({action, ...payload}),
-  });
+  try {
+    return await requestJson(`${config.projectUrl}/functions/v1/memos`, {
+      method: "POST",
+      headers: {"content-type": "application/json", "x-write-passphrase": passphrase},
+      body: JSON.stringify({action, ...payload}),
+    });
+  } finally {
+    await loadAccessStats();
+  }
 }
 
 form.addEventListener("submit", async event => {
@@ -279,9 +326,15 @@ cancelEditButton.addEventListener("click", () => {
   resetForm();
   setStatus("編集を取り消しました。");
 });
-refreshButton.addEventListener("click", loadMemos);
+refreshButton.addEventListener("click", () => {
+  loadMemos();
+  loadAccessStats();
+});
 document.addEventListener("visibilitychange", () => {
-  if (!document.hidden) loadMemos({silent: true});
+  if (!document.hidden) {
+    loadMemos({silent: true});
+    loadAccessStats();
+  }
 });
 setInterval(() => {
   if (!document.hidden) loadMemos({silent: true});
@@ -293,3 +346,4 @@ if (getConfigurationError()) {
   });
 }
 loadMemos();
+loadAccessStats();
